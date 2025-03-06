@@ -4,12 +4,19 @@ export PATH
 #=================================================
 # System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 # Description: Install the ShadowsocksR server
-# Version: 2.0.38
-# Author: Toyo
-# Blog: https://doub.io/ss-jc42/
-# 修改了原脚本，支持高版本系统
+# Version: 3.0.0 (Modified for high version systems)
+# Author: Toyo (Modified by Alvin9999)
+# Blog: https://github.com/Alvin9999/new-pac/wiki
 #=================================================
-sh_ver="2.0.38"
+
+# 使用 python3 作为默认解释器（如果存在）
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON=python3
+else
+    PYTHON=python
+fi
+
+sh_ver="3.0.0"
 filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
@@ -33,7 +40,6 @@ Separator_1="——————————————————————�
 check_root(){
 	[[ $EUID != 0 ]] && echo -e "${Error} 当前账号非ROOT(或没有ROOT权限)，无法继续操作，请使用${Green_background_prefix} sudo su ${Font_color_suffix}来获取临时ROOT权限（执行后会提示输入当前账号的密码）。" && exit 1
 }
-
 check_sys(){
 	if [[ -f /etc/redhat-release ]]; then
 		release="centos"
@@ -49,27 +55,22 @@ check_sys(){
 		release="ubuntu"
 	elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
 		release="centos"
-	fi
+    fi
 	bit=`uname -m`
 }
-
 check_pid(){
 	PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
 }
-
 SSR_installation_status(){
 	[[ ! -e ${config_user_file} ]] && echo -e "${Error} 没有发现 ShadowsocksR 配置文件，请检查 !" && exit 1
 	[[ ! -e ${ssr_folder} ]] && echo -e "${Error} 没有发现 ShadowsocksR 文件夹，请检查 !" && exit 1
 }
-
 Server_Speeder_installation_status(){
 	[[ ! -e ${Server_Speeder_file} ]] && echo -e "${Error} 没有安装 锐速(Server Speeder)，请检查 !" && exit 1
 }
-
 LotServer_installation_status(){
 	[[ ! -e ${LotServer_file} ]] && echo -e "${Error} 没有安装 LotServer，请检查 !" && exit 1
 }
-
 BBR_installation_status(){
 	if [[ ! -e ${BBR_file} ]]; then
 		echo -e "${Error} 没有发现 BBR脚本，开始下载..."
@@ -82,7 +83,6 @@ BBR_installation_status(){
 		fi
 	fi
 }
-
 # 设置 防火墙规则
 Add_iptables(){
 	iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport ${ssr_port} -j ACCEPT
@@ -90,14 +90,12 @@ Add_iptables(){
 	ip6tables -I INPUT -m state --state NEW -m tcp -p tcp --dport ${ssr_port} -j ACCEPT
 	ip6tables -I INPUT -m state --state NEW -m udp -p udp --dport ${ssr_port} -j ACCEPT
 }
-
 Del_iptables(){
 	iptables -D INPUT -m state --state NEW -m tcp -p tcp --dport ${port} -j ACCEPT
 	iptables -D INPUT -m state --state NEW -m udp -p udp --dport ${port} -j ACCEPT
 	ip6tables -D INPUT -m state --state NEW -m tcp -p tcp --dport ${port} -j ACCEPT
 	ip6tables -D INPUT -m state --state NEW -m udp -p udp --dport ${port} -j ACCEPT
 }
-
 Save_iptables(){
 	if [[ ${release} == "centos" ]]; then
 		service iptables save
@@ -107,7 +105,6 @@ Save_iptables(){
 		ip6tables-save > /etc/ip6tables.up.rules
 	fi
 }
-
 Set_iptables(){
 	if [[ ${release} == "centos" ]]; then
 		service iptables save
@@ -121,7 +118,6 @@ Set_iptables(){
 		chmod +x /etc/network/if-pre-up.d/iptables
 	fi
 }
-
 # 读取 配置信息
 Get_IP(){
 	ip=$(wget -qO- -t1 -T2 ipinfo.io/ip)
@@ -135,7 +131,6 @@ Get_IP(){
 		fi
 	fi
 }
-
 Get_User(){
 	[[ ! -e ${jq_file} ]] && echo -e "${Error} JQ解析器 不存在，请检查 !" && exit 1
 	port=`${jq_file} '.server_port' ${config_user_file}`
@@ -148,19 +143,16 @@ Get_User(){
 	speed_limit_per_user=`${jq_file} '.speed_limit_per_user' ${config_user_file}`
 	connect_verbose_info=`${jq_file} '.connect_verbose_info' ${config_user_file}`
 }
-
 urlsafe_base64(){
 	date=$(echo -n "$1"|base64|sed ':a;N;s/\n/ /g;ta'|sed 's/ //g;s/=//g;s/+/-/g;s/\//_/g')
 	echo -e "${date}"
 }
-
 ss_link_qr(){
 	SSbase64=$(urlsafe_base64 "${method}:${password}@${ip}:${port}")
 	SSurl="ss://${SSbase64}"
 	SSQRcode="http://doub.pw/qr/qr.php?text=${SSurl}"
-	ss_link=" SS 链接 : ${Green_font_prefix}${SSurl}${Font_color_suffix} \n SS 二维码 : ${Green_font_prefix}${SSQRcode}${Font_color_suffix}"
+	ss_link=" SS    链接 : ${Green_font_prefix}${SSurl}${Font_color_suffix} \n SS  二维码 : ${Green_font_prefix}${SSQRcode}${Font_color_suffix}"
 }
-
 ssr_link_qr(){
 	SSRprotocol=$(echo ${protocol} | sed 's/_compatible//g')
 	SSRobfs=$(echo ${obfs} | sed 's/_compatible//g')
@@ -168,9 +160,8 @@ ssr_link_qr(){
 	SSRbase64=$(urlsafe_base64 "${ip}:${port}:${SSRprotocol}:${method}:${SSRobfs}:${SSRPWDbase64}")
 	SSRurl="ssr://${SSRbase64}"
 	SSRQRcode="http://doub.pw/qr/qr.php?text=${SSRurl}"
-	ssr_link=" SSR 链接 : ${Red_font_prefix}${SSRurl}${Font_color_suffix} \n SSR 二维码 : ${Red_font_prefix}${SSRQRcode}${Font_color_suffix} \n "
+	ssr_link=" SSR   链接 : ${Red_font_prefix}${SSRurl}${Font_color_suffix} \n SSR 二维码 : ${Red_font_prefix}${SSRQRcode}${Font_color_suffix} \n "
 }
-
 ss_ssr_determine(){
 	protocol_suffix=`echo ${protocol} | awk -F "_" '{print $NF}'`
 	obfs_suffix=`echo ${obfs} | awk -F "_" '{print $NF}'`
@@ -202,7 +193,6 @@ ss_ssr_determine(){
 	fi
 	ssr_link_qr
 }
-
 # 显示 配置信息
 View_User(){
 	SSR_installation_status
@@ -212,113 +202,104 @@ View_User(){
 	[[ -z ${protocol_param} ]] && protocol_param="0(无限)"
 	if [[ -z "${now_mode}" ]]; then
 		ss_ssr_determine
-		clear
-		echo "==================================================="
-		echo
-		echo -e " ShadowsocksR账号 配置信息："
-		echo
-		echo -e " I P\t : ${Green_font_prefix}${ip}${Font_color_suffix}"
-		echo -e " 端口\t : ${Green_font_prefix}${port}${Font_color_suffix}"
-		echo -e " 密码\t : ${Green_font_prefix}${password}${Font_color_suffix}"
-		echo -e " 加密\t : ${Green_font_prefix}${method}${Font_color_suffix}"
-		echo -e " 协议\t : ${Red_font_prefix}${protocol}${Font_color_suffix}"
-		echo -e " 混淆\t : ${Red_font_prefix}${obfs}${Font_color_suffix}"
+		clear && echo "===================================================" && echo
+		echo -e " ShadowsocksR账号 配置信息：" && echo
+		echo -e " I  P\t    : ${Green_font_prefix}${ip}${Font_color_suffix}"
+		echo -e " 端口\t    : ${Green_font_prefix}${port}${Font_color_suffix}"
+		echo -e " 密码\t    : ${Green_font_prefix}${password}${Font_color_suffix}"
+		echo -e " 加密\t    : ${Green_font_prefix}${method}${Font_color_suffix}"
+		echo -e " 协议\t    : ${Red_font_prefix}${protocol}${Font_color_suffix}"
+		echo -e " 混淆\t    : ${Red_font_prefix}${obfs}${Font_color_suffix}"
 		echo -e " 设备数限制 : ${Green_font_prefix}${protocol_param}${Font_color_suffix}"
 		echo -e " 单线程限速 : ${Green_font_prefix}${speed_limit_per_con} KB/S${Font_color_suffix}"
 		echo -e " 端口总限速 : ${Green_font_prefix}${speed_limit_per_user} KB/S${Font_color_suffix}"
 		echo -e "${ss_link}"
 		echo -e "${ssr_link}"
-		echo -e " ${Green_font_prefix} 提示: ${Font_color_suffix} 在浏览器中，打开二维码链接，就可以看到二维码图片。 协议和混淆后面的[ _compatible ]，指的是 兼容原版协议/混淆。"
-		echo
-		echo "==================================================="
+		echo -e " ${Green_font_prefix} 提示: ${Font_color_suffix}
+ 在浏览器中，打开二维码链接，就可以看到二维码图片。
+ 协议和混淆后面的[ _compatible ]，指的是 兼容原版协议/混淆。"
+		echo && echo "==================================================="
 	else
 		user_total=`${jq_file} '.port_password' ${config_user_file} | sed '$d' | sed "1d" | wc -l`
 		[[ ${user_total} = "0" ]] && echo -e "${Error} 没有发现 多端口用户，请检查 !" && exit 1
-		clear
-		echo "==================================================="
-		echo
-		echo -e " ShadowsocksR账号 配置信息："
-		echo
-		echo -e " I P\t : ${Green_font_prefix}${ip}${Font_color_suffix}"
-		echo -e " 加密\t : ${Green_font_prefix}${method}${Font_color_suffix}"
-		echo -e " 协议\t : ${Red_font_prefix}${protocol}${Font_color_suffix}"
-		echo -e " 混淆\t : ${Red_font_prefix}${obfs}${Font_color_suffix}"
+		clear && echo "===================================================" && echo
+		echo -e " ShadowsocksR账号 配置信息：" && echo
+		echo -e " I  P\t    : ${Green_font_prefix}${ip}${Font_color_suffix}"
+		echo -e " 加密\t    : ${Green_font_prefix}${method}${Font_color_suffix}"
+		echo -e " 协议\t    : ${Red_font_prefix}${protocol}${Font_color_suffix}"
+		echo -e " 混淆\t    : ${Red_font_prefix}${obfs}${Font_color_suffix}"
 		echo -e " 设备数限制 : ${Green_font_prefix}${protocol_param}${Font_color_suffix}"
 		echo -e " 单线程限速 : ${Green_font_prefix}${speed_limit_per_con} KB/S${Font_color_suffix}"
-		echo -e " 端口总限速 : ${Green_font_prefix}${speed_limit_per_user} KB/S${Font_color_suffix}"
-		echo && echo
+		echo -e " 端口总限速 : ${Green_font_prefix}${speed_limit_per_user} KB/S${Font_color_suffix}" && echo
 		for((integer = ${user_total}; integer >= 1; integer--))
 		do
 			port=`${jq_file} '.port_password' ${config_user_file} | sed '$d' | sed "1d" | awk -F ":" '{print $1}' | sed -n "${integer}p" | sed -r 's/.*\"(.+)\".*/\1/'`
 			password=`${jq_file} '.port_password' ${config_user_file} | sed '$d' | sed "1d" | awk -F ":" '{print $2}' | sed -n "${integer}p" | sed -r 's/.*\"(.+)\".*/\1/'`
 			ss_ssr_determine
 			echo -e ${Separator_1}
-			echo -e " 端口\t : ${Green_font_prefix}${port}${Font_color_suffix}"
-			echo -e " 密码\t : ${Green_font_prefix}${password}${Font_color_suffix}"
+			echo -e " 端口\t    : ${Green_font_prefix}${port}${Font_color_suffix}"
+			echo -e " 密码\t    : ${Green_font_prefix}${password}${Font_color_suffix}"
 			echo -e "${ss_link}"
 			echo -e "${ssr_link}"
 		done
-		echo -e " ${Green_font_prefix} 提示: ${Font_color_suffix} 在浏览器中，打开二维码链接，就可以看到二维码图片。 协议和混淆后面的[ _compatible ]，指的是 兼容原版协议/混淆。"
-		echo
-		echo "==================================================="
+		echo -e " ${Green_font_prefix} 提示: ${Font_color_suffix}
+ 在浏览器中，打开二维码链接，就可以看到二维码图片。
+ 协议和混淆后面的[ _compatible ]，指的是 兼容原版协议/混淆。"
+		echo && echo "==================================================="
 	fi
 }
-
 # 设置 配置信息
 Set_config_port(){
 	while true
 	do
-		echo -e "请输入要设置的ShadowsocksR账号 端口"
-		read -e -p "(默认: 2333):" ssr_port
-		[[ -z "$ssr_port" ]] && ssr_port="2333"
-		echo $((${ssr_port}+0)) &>/dev/null
-		if [[ $? == 0 ]]; then
-			if [[ ${ssr_port} -ge 1 ]] && [[ ${ssr_port} -le 65535 ]]; then
-				echo
-				echo ${Separator_1}
-				echo -e " 端口 : ${Green_font_prefix}${ssr_port}${Font_color_suffix}"
-				echo ${Separator_1}
-				echo
-				break
-			else
-				echo -e "${Error} 请输入正确的数字(1-65535)"
-			fi
+	echo -e "请输入要设置的ShadowsocksR账号 端口"
+	read -e -p "(默认: 2333):" ssr_port
+	[[ -z "$ssr_port" ]] && ssr_port="2333"
+	echo $((${ssr_port}+0)) &>/dev/null
+	if [[ $? == 0 ]]; then
+		if [[ ${ssr_port} -ge 1 ]] && [[ ${ssr_port} -le 65535 ]]; then
+			echo && echo ${Separator_1} && echo -e "	端口 : ${Green_font_prefix}${ssr_port}${Font_color_suffix}" && echo ${Separator_1} && echo
+			break
 		else
 			echo -e "${Error} 请输入正确的数字(1-65535)"
 		fi
+	else
+		echo -e "${Error} 请输入正确的数字(1-65535)"
+	fi
 	done
 }
-
 Set_config_password(){
 	echo "请输入要设置的ShadowsocksR账号 密码"
 	read -e -p "(默认: doub.io):" ssr_password
 	[[ -z "${ssr_password}" ]] && ssr_password="doub.io"
-	echo
-	echo ${Separator_1}
-	echo -e " 密码 : ${Green_font_prefix}${ssr_password}${Font_color_suffix}"
-	echo ${Separator_1}
-	echo
+	echo && echo ${Separator_1} && echo -e "	密码 : ${Green_font_prefix}${ssr_password}${Font_color_suffix}" && echo ${Separator_1} && echo
 }
-
 Set_config_method(){
-	echo -e "请选择要设置的ShadowsocksR账号 加密方式 ${Green_font_prefix} 1.${Font_color_suffix} none ${Tip} 如果使用 auth_chain_a 协议，请加密方式选择 none，混淆随意(建议 plain)
+	echo -e "请选择要设置的ShadowsocksR账号 加密方式
+	
+ ${Green_font_prefix} 1.${Font_color_suffix} none
+ ${Tip} 如果使用 auth_chain_a 协议，请加密方式选择 none，混淆随意(建议 plain)
+ 
  ${Green_font_prefix} 2.${Font_color_suffix} rc4
  ${Green_font_prefix} 3.${Font_color_suffix} rc4-md5
  ${Green_font_prefix} 4.${Font_color_suffix} rc4-md5-6
+ 
  ${Green_font_prefix} 5.${Font_color_suffix} aes-128-ctr
  ${Green_font_prefix} 6.${Font_color_suffix} aes-192-ctr
  ${Green_font_prefix} 7.${Font_color_suffix} aes-256-ctr
+ 
  ${Green_font_prefix} 8.${Font_color_suffix} aes-128-cfb
  ${Green_font_prefix} 9.${Font_color_suffix} aes-192-cfb
  ${Green_font_prefix}10.${Font_color_suffix} aes-256-cfb
+ 
  ${Green_font_prefix}11.${Font_color_suffix} aes-128-cfb8
  ${Green_font_prefix}12.${Font_color_suffix} aes-192-cfb8
  ${Green_font_prefix}13.${Font_color_suffix} aes-256-cfb8
+ 
  ${Green_font_prefix}14.${Font_color_suffix} salsa20
  ${Green_font_prefix}15.${Font_color_suffix} chacha20
  ${Green_font_prefix}16.${Font_color_suffix} chacha20-ietf
- ${Tip} salsa20/chacha20-*系列加密方式，需要额外安装依赖 libsodium ，否则会无法启动ShadowsocksR !"
-	echo
+ ${Tip} salsa20/chacha20-*系列加密方式，需要额外安装依赖 libsodium ，否则会无法启动ShadowsocksR !" && echo
 	read -e -p "(默认: 5. aes-128-ctr):" ssr_method
 	[[ -z "${ssr_method}" ]] && ssr_method="5"
 	if [[ ${ssr_method} == "1" ]]; then
@@ -356,22 +337,18 @@ Set_config_method(){
 	else
 		ssr_method="aes-128-ctr"
 	fi
-	echo
-	echo ${Separator_1}
-	echo -e " 加密 : ${Green_font_prefix}${ssr_method}${Font_color_suffix}"
-	echo ${Separator_1}
-	echo
+	echo && echo ${Separator_1} && echo -e "	加密 : ${Green_font_prefix}${ssr_method}${Font_color_suffix}" && echo ${Separator_1} && echo
 }
-
 Set_config_protocol(){
-	echo -e "请选择要设置的ShadowsocksR账号 协议插件 ${Green_font_prefix}1.${Font_color_suffix} origin
+	echo -e "请选择要设置的ShadowsocksR账号 协议插件
+	
+ ${Green_font_prefix}1.${Font_color_suffix} origin
  ${Green_font_prefix}2.${Font_color_suffix} auth_sha1_v4
  ${Green_font_prefix}3.${Font_color_suffix} auth_aes128_md5
  ${Green_font_prefix}4.${Font_color_suffix} auth_aes128_sha1
  ${Green_font_prefix}5.${Font_color_suffix} auth_chain_a
  ${Green_font_prefix}6.${Font_color_suffix} auth_chain_b
- ${Tip} 如果使用 auth_chain_a 协议，请加密方式选择 none，混淆随意(建议 plain)"
-	echo
+ ${Tip} 如果使用 auth_chain_a 协议，请加密方式选择 none，混淆随意(建议 plain)" && echo
 	read -e -p "(默认: 2. auth_sha1_v4):" ssr_protocol
 	[[ -z "${ssr_protocol}" ]] && ssr_protocol="2"
 	if [[ ${ssr_protocol} == "1" ]]; then
@@ -389,30 +366,27 @@ Set_config_protocol(){
 	else
 		ssr_protocol="auth_sha1_v4"
 	fi
-	echo
-	echo ${Separator_1}
-	echo -e " 协议 : ${Green_font_prefix}${ssr_protocol}${Font_color_suffix}"
-	echo ${Separator_1}
-	echo
+	echo && echo ${Separator_1} && echo -e "	协议 : ${Green_font_prefix}${ssr_protocol}${Font_color_suffix}" && echo ${Separator_1} && echo
 	if [[ ${ssr_protocol} != "origin" ]]; then
 		if [[ ${ssr_protocol} == "auth_sha1_v4" ]]; then
 			read -e -p "是否设置 协议插件兼容原版(_compatible)？[Y/n]" ssr_protocol_yn
 			[[ -z "${ssr_protocol_yn}" ]] && ssr_protocol_yn="y"
 			[[ $ssr_protocol_yn == [Yy] ]] && ssr_protocol=${ssr_protocol}"_compatible"
+			echo
 		fi
 	fi
 }
-
 Set_config_obfs(){
-	echo -e "请选择要设置的ShadowsocksR账号 混淆插件 ${Green_font_prefix}1.${Font_color_suffix} plain
+	echo -e "请选择要设置的ShadowsocksR账号 混淆插件
+	
+ ${Green_font_prefix}1.${Font_color_suffix} plain
  ${Green_font_prefix}2.${Font_color_suffix} http_simple
  ${Green_font_prefix}3.${Font_color_suffix} http_post
  ${Green_font_prefix}4.${Font_color_suffix} random_head
  ${Green_font_prefix}5.${Font_color_suffix} tls1.2_ticket_auth
  ${Tip} 如果使用 ShadowsocksR 加速游戏，请选择 混淆兼容原版或 plain 混淆，然后客户端选择 plain，否则会增加延迟 !
  另外, 如果你选择了 tls1.2_ticket_auth，那么客户端可以选择 tls1.2_ticket_fastauth，这样即能伪装又不会增加延迟 !
- 如果你是在日本、美国等热门地区搭建，那么选择 plain 混淆可能被墙几率更低 !"
-	echo
+ 如果你是在日本、美国等热门地区搭建，那么选择 plain 混淆可能被墙几率更低 !" && echo
 	read -e -p "(默认: 1. plain):" ssr_obfs
 	[[ -z "${ssr_obfs}" ]] && ssr_obfs="1"
 	if [[ ${ssr_obfs} == "1" ]]; then
@@ -428,94 +402,75 @@ Set_config_obfs(){
 	else
 		ssr_obfs="plain"
 	fi
-	echo
-	echo ${Separator_1}
-	echo -e " 混淆 : ${Green_font_prefix}${ssr_obfs}${Font_color_suffix}"
-	echo ${Separator_1}
-	echo
+	echo && echo ${Separator_1} && echo -e "	混淆 : ${Green_font_prefix}${ssr_obfs}${Font_color_suffix}" && echo ${Separator_1} && echo
 	if [[ ${ssr_obfs} != "plain" ]]; then
-		read -e -p "是否设置 混淆插件兼容原版(_compatible)？[Y/n]" ssr_obfs_yn
-		[[ -z "${ssr_obfs_yn}" ]] && ssr_obfs_yn="y"
-		[[ $ssr_obfs_yn == [Yy] ]] && ssr_obfs=${ssr_obfs}"_compatible"
+			read -e -p "是否设置 混淆插件兼容原版(_compatible)？[Y/n]" ssr_obfs_yn
+			[[ -z "${ssr_obfs_yn}" ]] && ssr_obfs_yn="y"
+			[[ $ssr_obfs_yn == [Yy] ]] && ssr_obfs=${ssr_obfs}"_compatible"
+			echo
 	fi
 }
-
 Set_config_protocol_param(){
 	while true
 	do
-		echo -e "请输入要设置的ShadowsocksR账号 欲限制的设备数 (${Green_font_prefix} auth_* 系列协议 不兼容原版才有效 ${Font_color_suffix})"
-		echo -e "${Tip} 设备数限制：每个端口同一时间能链接的客户端数量(多端口模式，每个端口都是独立计算)，建议最少 2个。"
-		read -e -p "(默认: 无限):" ssr_protocol_param
-		[[ -z "$ssr_protocol_param" ]] && ssr_protocol_param="" && echo && break
-		echo $((${ssr_protocol_param}+0)) &>/dev/null
-		if [[ $? == 0 ]]; then
-			if [[ ${ssr_protocol_param} -ge 1 ]] && [[ ${ssr_protocol_param} -le 9999 ]]; then
-				echo
-				echo ${Separator_1}
-				echo -e " 设备数限制 : ${Green_font_prefix}${ssr_protocol_param}${Font_color_suffix}"
-				echo ${Separator_1}
-				echo
-				break
-			else
-				echo -e "${Error} 请输入正确的数字(1-9999)"
-			fi
+	echo -e "请输入要设置的ShadowsocksR账号 欲限制的设备数 (${Green_font_prefix} auth_* 系列协议 不兼容原版才有效 ${Font_color_suffix})"
+	echo -e "${Tip} 设备数限制：每个端口同一时间能链接的客户端数量(多端口模式，每个端口都是独立计算)，建议最少 2个。"
+	read -e -p "(默认: 无限):" ssr_protocol_param
+	[[ -z "$ssr_protocol_param" ]] && ssr_protocol_param="" && echo && break
+	echo $((${ssr_protocol_param}+0)) &>/dev/null
+	if [[ $? == 0 ]]; then
+		if [[ ${ssr_protocol_param} -ge 1 ]] && [[ ${ssr_protocol_param} -le 9999 ]]; then
+			echo && echo ${Separator_1} && echo -e "	设备数限制 : ${Green_font_prefix}${ssr_protocol_param}${Font_color_suffix}" && echo ${Separator_1} && echo
+			break
 		else
 			echo -e "${Error} 请输入正确的数字(1-9999)"
 		fi
+	else
+		echo -e "${Error} 请输入正确的数字(1-9999)"
+	fi
 	done
 }
-
 Set_config_speed_limit_per_con(){
 	while true
 	do
-		echo -e "请输入要设置的每个端口 单线程 限速上限(单位：KB/S)"
-		echo -e "${Tip} 单线程限速：每个端口 单线程的限速上限，多线程即无效。"
-		read -e -p "(默认: 无限):" ssr_speed_limit_per_con
-		[[ -z "$ssr_speed_limit_per_con" ]] && ssr_speed_limit_per_con=0 && echo && break
-		echo $((${ssr_speed_limit_per_con}+0)) &>/dev/null
-		if [[ $? == 0 ]]; then
-			if [[ ${ssr_speed_limit_per_con} -ge 1 ]] && [[ ${ssr_speed_limit_per_con} -le 131072 ]]; then
-				echo
-				echo ${Separator_1}
-				echo -e " 单线程限速 : ${Green_font_prefix}${ssr_speed_limit_per_con} KB/S${Font_color_suffix}"
-				echo ${Separator_1}
-				echo
-				break
-			else
-				echo -e "${Error} 请输入正确的数字(1-131072)"
-			fi
+	echo -e "请输入要设置的每个端口 单线程 限速上限(单位：KB/S)"
+	echo -e "${Tip} 单线程限速：每个端口 单线程的限速上限，多线程即无效。"
+	read -e -p "(默认: 无限):" ssr_speed_limit_per_con
+	[[ -z "$ssr_speed_limit_per_con" ]] && ssr_speed_limit_per_con=0 && echo && break
+	echo $((${ssr_speed_limit_per_con}+0)) &>/dev/null
+	if [[ $? == 0 ]]; then
+		if [[ ${ssr_speed_limit_per_con} -ge 1 ]] && [[ ${ssr_speed_limit_per_con} -le 131072 ]]; then
+			echo && echo ${Separator_1} && echo -e "	单线程限速 : ${Green_font_prefix}${ssr_speed_limit_per_con} KB/S${Font_color_suffix}" && echo ${Separator_1} && echo
+			break
 		else
 			echo -e "${Error} 请输入正确的数字(1-131072)"
 		fi
+	else
+		echo -e "${Error} 请输入正确的数字(1-131072)"
+	fi
 	done
 }
-
 Set_config_speed_limit_per_user(){
 	while true
 	do
-		echo
-		echo -e "请输入要设置的每个端口 总速度 限速上限(单位：KB/S)"
-		echo -e "${Tip} 端口总限速：每个端口 总速度 限速上限，单个端口整体限速。"
-		read -e -p "(默认: 无限):" ssr_speed_limit_per_user
-		[[ -z "$ssr_speed_limit_per_user" ]] && ssr_speed_limit_per_user=0 && echo && break
-		echo $((${ssr_speed_limit_per_user}+0)) &>/dev/null
-		if [[ $? == 0 ]]; then
-			if [[ ${ssr_speed_limit_per_user} -ge 1 ]] && [[ ${ssr_speed_limit_per_user} -le 131072 ]]; then
-				echo
-				echo ${Separator_1}
-				echo -e " 端口总限速 : ${Green_font_prefix}${ssr_speed_limit_per_user} KB/S${Font_color_suffix}"
-				echo ${Separator_1}
-				echo
-				break
-			else
-				echo -e "${Error} 请输入正确的数字(1-131072)"
-			fi
+	echo
+	echo -e "请输入要设置的每个端口 总速度 限速上限(单位：KB/S)"
+	echo -e "${Tip} 端口总限速：每个端口 总速度 限速上限，单个端口整体限速。"
+	read -e -p "(默认: 无限):" ssr_speed_limit_per_user
+	[[ -z "$ssr_speed_limit_per_user" ]] && ssr_speed_limit_per_user=0 && echo && break
+	echo $((${ssr_speed_limit_per_user}+0)) &>/dev/null
+	if [[ $? == 0 ]]; then
+		if [[ ${ssr_speed_limit_per_user} -ge 1 ]] && [[ ${ssr_speed_limit_per_user} -le 131072 ]]; then
+			echo && echo ${Separator_1} && echo -e "	端口总限速 : ${Green_font_prefix}${ssr_speed_limit_per_user} KB/S${Font_color_suffix}" && echo ${Separator_1} && echo
+			break
 		else
 			echo -e "${Error} 请输入正确的数字(1-131072)"
 		fi
+	else
+		echo -e "${Error} 请输入正确的数字(1-131072)"
+	fi
 	done
 }
-
 Set_config_all(){
 	Set_config_port
 	Set_config_password
@@ -526,44 +481,34 @@ Set_config_all(){
 	Set_config_speed_limit_per_con
 	Set_config_speed_limit_per_user
 }
-
 # 修改 配置信息
 Modify_config_port(){
 	sed -i 's/"server_port": '"$(echo ${port})"'/"server_port": '"$(echo ${ssr_port})"'/g' ${config_user_file}
 }
-
 Modify_config_password(){
 	sed -i 's/"password": "'"$(echo ${password})"'"/"password": "'"$(echo ${ssr_password})"'"/g' ${config_user_file}
 }
-
 Modify_config_method(){
 	sed -i 's/"method": "'"$(echo ${method})"'"/"method": "'"$(echo ${ssr_method})"'"/g' ${config_user_file}
 }
-
 Modify_config_protocol(){
 	sed -i 's/"protocol": "'"$(echo ${protocol})"'"/"protocol": "'"$(echo ${ssr_protocol})"'"/g' ${config_user_file}
 }
-
 Modify_config_obfs(){
 	sed -i 's/"obfs": "'"$(echo ${obfs})"'"/"obfs": "'"$(echo ${ssr_obfs})"'"/g' ${config_user_file}
 }
-
 Modify_config_protocol_param(){
 	sed -i 's/"protocol_param": "'"$(echo ${protocol_param})"'"/"protocol_param": "'"$(echo ${ssr_protocol_param})"'"/g' ${config_user_file}
 }
-
 Modify_config_speed_limit_per_con(){
 	sed -i 's/"speed_limit_per_con": '"$(echo ${speed_limit_per_con})"'/"speed_limit_per_con": '"$(echo ${ssr_speed_limit_per_con})"'/g' ${config_user_file}
 }
-
 Modify_config_speed_limit_per_user(){
 	sed -i 's/"speed_limit_per_user": '"$(echo ${speed_limit_per_user})"'/"speed_limit_per_user": '"$(echo ${ssr_speed_limit_per_user})"'/g' ${config_user_file}
 }
-
 Modify_config_connect_verbose_info(){
 	sed -i 's/"connect_verbose_info": '"$(echo ${connect_verbose_info})"'/"connect_verbose_info": '"$(echo ${ssr_connect_verbose_info})"'/g' ${config_user_file}
 }
-
 Modify_config_all(){
 	Modify_config_port
 	Modify_config_password
@@ -574,83 +519,82 @@ Modify_config_all(){
 	Modify_config_speed_limit_per_con
 	Modify_config_speed_limit_per_user
 }
-
 Modify_config_port_many(){
 	sed -i 's/"'"$(echo ${port})"'":/"'"$(echo ${ssr_port})"'":/g' ${config_user_file}
 }
-
 Modify_config_password_many(){
 	sed -i 's/"'"$(echo ${password})"'"/"'"$(echo ${ssr_password})"'"/g' ${config_user_file}
 }
-
 # 写入 配置信息
 Write_configuration(){
 	cat > ${config_user_file}<<-EOF
 {
-	"server": "0.0.0.0",
-	"server_ipv6": "::",
-	"server_port": ${ssr_port},
-	"local_address": "127.0.0.1",
-	"local_port": 1080,
-	"password": "${ssr_password}",
-	"method": "${ssr_method}",
-	"protocol": "${ssr_protocol}",
-	"protocol_param": "${ssr_protocol_param}",
-	"obfs": "${ssr_obfs}",
-	"obfs_param": "",
-	"speed_limit_per_con": ${ssr_speed_limit_per_con},
-	"speed_limit_per_user": ${ssr_speed_limit_per_user},
-	"additional_ports" : {},
-	"timeout": 120,
-	"udp_timeout": 60,
-	"dns_ipv6": false,
-	"connect_verbose_info": 0,
-	"redirect": "",
-	"fast_open": false
+    "server": "0.0.0.0",
+    "server_ipv6": "::",
+    "server_port": ${ssr_port},
+    "local_address": "127.0.0.1",
+    "local_port": 1080,
+
+    "password": "${ssr_password}",
+    "method": "${ssr_method}",
+    "protocol": "${ssr_protocol}",
+    "protocol_param": "${ssr_protocol_param}",
+    "obfs": "${ssr_obfs}",
+    "obfs_param": "",
+    "speed_limit_per_con": ${ssr_speed_limit_per_con},
+    "speed_limit_per_user": ${ssr_speed_limit_per_user},
+
+    "additional_ports" : {},
+    "timeout": 120,
+    "udp_timeout": 60,
+    "dns_ipv6": false,
+    "connect_verbose_info": 0,
+    "redirect": "",
+    "fast_open": false
 }
 EOF
 }
-
 Write_configuration_many(){
 	cat > ${config_user_file}<<-EOF
 {
-	"server": "0.0.0.0",
-	"server_ipv6": "::",
-	"local_address": "127.0.0.1",
-	"local_port": 1080,
-	"port_password":{
-		"${ssr_port}":"${ssr_password}"
-	},
-	"method": "${ssr_method}",
-	"protocol": "${ssr_protocol}",
-	"protocol_param": "${ssr_protocol_param}",
-	"obfs": "${ssr_obfs}",
-	"obfs_param": "",
-	"speed_limit_per_con": ${ssr_speed_limit_per_con},
-	"speed_limit_per_user": ${ssr_speed_limit_per_user},
-	"additional_ports" : {},
-	"timeout": 120,
-	"udp_timeout": 60,
-	"dns_ipv6": false,
-	"connect_verbose_info": 0,
-	"redirect": "",
-	"fast_open": false
+    "server": "0.0.0.0",
+    "server_ipv6": "::",
+    "local_address": "127.0.0.1",
+    "local_port": 1080,
+
+    "port_password":{
+        "${ssr_port}":"${ssr_password}"
+    },
+    "method": "${ssr_method}",
+    "protocol": "${ssr_protocol}",
+    "protocol_param": "${ssr_protocol_param}",
+    "obfs": "${ssr_obfs}",
+    "obfs_param": "",
+    "speed_limit_per_con": ${ssr_speed_limit_per_con},
+    "speed_limit_per_user": ${ssr_speed_limit_per_user},
+
+    "additional_ports" : {},
+    "timeout": 120,
+    "udp_timeout": 60,
+    "dns_ipv6": false,
+    "connect_verbose_info": 0,
+    "redirect": "",
+    "fast_open": false
 }
 EOF
 }
-
+# 修改 Check_python 函数，使用 ${PYTHON} 检查 Python3
 Check_python(){
-	python_ver=`python -h`
-	if [[ -z ${python_ver} ]]; then
-		echo -e "${Info} 没有安装Python，开始安装..."
+	python_ver=`${PYTHON} -h 2>/dev/null`
+	if [[ -z "${python_ver}" ]]; then
+		echo -e "${Info} 没有安装Python3，开始安装..."
 		if [[ ${release} == "centos" ]]; then
-			yum install -y python
+			yum install -y python3
 		else
-			apt-get install -y python
+			apt-get install -y python3
 		fi
 	fi
 }
-
 Centos_yum(){
 	yum update
 	cat /etc/redhat-release |grep 7\..*|grep -i centos>/dev/null
@@ -660,7 +604,6 @@ Centos_yum(){
 		yum install -y vim unzip
 	fi
 }
-
 Debian_apt(){
 	apt-get update
 	cat /etc/issue |grep 9\..*>/dev/null
@@ -670,7 +613,6 @@ Debian_apt(){
 		apt-get install -y vim unzip
 	fi
 }
-
 # 下载 ShadowsocksR
 Download_SSR(){
 	cd "/usr/local/"
@@ -689,7 +631,6 @@ Download_SSR(){
 	[[ ! -e ${config_folder} ]] && echo -e "${Error} ShadowsocksR配置文件的文件夹 建立失败 !" && exit 1
 	echo -e "${Info} ShadowsocksR服务端 下载完成 !"
 }
-
 Service_SSR(){
 	if [[ ${release} = "centos" ]]; then
 		if ! wget --no-check-certificate https://raw.githubusercontent.com/ToyoDAdoubi/doubi/master/service/ssr_centos -O /etc/init.d/ssr; then
@@ -707,7 +648,6 @@ Service_SSR(){
 	fi
 	echo -e "${Info} ShadowsocksR服务 管理脚本下载完成 !"
 }
-
 # 安装 JQ解析器
 JQ_install(){
 	if [[ ! -e ${jq_file} ]]; then
@@ -721,12 +661,11 @@ JQ_install(){
 		fi
 		[[ ! -e ${jq_file} ]] && echo -e "${Error} JQ解析器 重命名失败，请检查 !" && exit 1
 		chmod +x ${jq_file}
-		echo -e "${Info} JQ解析器 安装完成，继续..."
+		echo -e "${Info} JQ解析器 安装完成，继续..." 
 	else
 		echo -e "${Info} JQ解析器 已安装，继续..."
 	fi
 }
-
 # 安装 依赖
 Installation_dependency(){
 	if [[ ${release} == "centos" ]]; then
@@ -740,7 +679,6 @@ Installation_dependency(){
 	#echo "nameserver 8.8.4.4" >> /etc/resolv.conf
 	\cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 }
-
 Install_SSR(){
 	check_root
 	[[ -e ${config_user_file} ]] && echo -e "${Error} ShadowsocksR 配置文件已存在，请检查( 如安装失败或者存在旧版本，请先卸载 ) !" && exit 1
@@ -766,7 +704,6 @@ Install_SSR(){
 	echo -e "${Info} 所有步骤 安装完毕，开始启动 ShadowsocksR服务端..."
 	Start_SSR
 }
-
 Update_SSR(){
 	SSR_installation_status
 	echo -e "因破娃暂停更新ShadowsocksR服务端，所以此功能临时禁用。"
@@ -774,7 +711,6 @@ Update_SSR(){
 	#git pull
 	#Restart_SSR
 }
-
 Uninstall_SSR(){
 	[[ ! -e ${config_user_file} ]] && [[ ! -e ${ssr_folder} ]] && echo -e "${Error} 没有安装 ShadowsocksR，请检查 !" && exit 1
 	echo "确定要 卸载ShadowsocksR？[y/N]" && echo
@@ -857,9 +793,9 @@ debian_View_user_connection_info(){
 	format_1=$1
 	if [[ -z "${now_mode}" ]]; then
 		now_mode="单端口" && user_total="1"
-		IP_total=`netstat -anp |grep 'ESTABLISHED' |grep 'python' |grep 'tcp6' |awk '{print $5}' |awk -F ":" '{print $1}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" |wc -l`
+		IP_total=`netstat -anp |grep 'ESTABLISHED' |grep '${PYTHON}' |grep 'tcp6' |awk '{print $5}' |awk -F ":" '{print $1}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" |wc -l`
 		user_port=`${jq_file} '.server_port' ${config_user_file}`
-		user_IP_1=`netstat -anp |grep 'ESTABLISHED' |grep 'python' |grep 'tcp6' |grep ":${user_port} " |awk '{print $5}' |awk -F ":" '{print $1}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" `
+		user_IP_1=`netstat -anp |grep 'ESTABLISHED' |grep '${PYTHON}' |grep 'tcp6' |grep ":${user_port} " |awk '{print $5}' |awk -F ":" '{print $1}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" `
 		if [[ -z ${user_IP_1} ]]; then
 			user_IP_total="0"
 		else
@@ -876,12 +812,12 @@ debian_View_user_connection_info(){
 		echo -e "${user_list_all}"
 	else
 		now_mode="多端口" && user_total=`${jq_file} '.port_password' ${config_user_file} |sed '$d;1d' | wc -l`
-		IP_total=`netstat -anp |grep 'ESTABLISHED' |grep 'python' |grep 'tcp6' |awk '{print $5}' |awk -F ":" '{print $1}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" |wc -l`
+		IP_total=`netstat -anp |grep 'ESTABLISHED' |grep '${PYTHON}' |grep 'tcp6' |awk '{print $5}' |awk -F ":" '{print $1}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" |wc -l`
 		user_list_all=""
 		for((integer = ${user_total}; integer >= 1; integer--))
 		do
 			user_port=`${jq_file} '.port_password' ${config_user_file} |sed '$d;1d' |awk -F ":" '{print $1}' |sed -n "${integer}p" |sed -r 's/.*\"(.+)\".*/\1/'`
-			user_IP_1=`netstat -anp |grep 'ESTABLISHED' |grep 'python' |grep 'tcp6' |grep "${user_port}" |awk '{print $5}' |awk -F ":" '{print $1}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}"`
+			user_IP_1=`netstat -anp |grep 'ESTABLISHED' |grep '${PYTHON}' |grep 'tcp6' |grep "${user_port}" |awk '{print $5}' |awk -F ":" '{print $1}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}"`
 			if [[ -z ${user_IP_1} ]]; then
 				user_IP_total="0"
 			else
@@ -903,9 +839,9 @@ centos_View_user_connection_info(){
 	format_1=$1
 	if [[ -z "${now_mode}" ]]; then
 		now_mode="单端口" && user_total="1"
-		IP_total=`netstat -anp |grep 'ESTABLISHED' |grep 'python' |grep 'tcp' |grep '::ffff:' |awk '{print $5}' |awk -F ":" '{print $4}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" |wc -l`
+		IP_total=`netstat -anp |grep 'ESTABLISHED' |grep '${PYTHON}' |grep 'tcp' |grep '::ffff:' |awk '{print $5}' |awk -F ":" '{print $4}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" |wc -l`
 		user_port=`${jq_file} '.server_port' ${config_user_file}`
-		user_IP_1=`netstat -anp |grep 'ESTABLISHED' |grep 'python' |grep 'tcp' |grep ":${user_port} " | grep '::ffff:' |awk '{print $5}' |awk -F ":" '{print $4}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}"`
+		user_IP_1=`netstat -anp |grep 'ESTABLISHED' |grep '${PYTHON}' |grep 'tcp' |grep ":${user_port} " | grep '::ffff:' |awk '{print $5}' |awk -F ":" '{print $4}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}"`
 		if [[ -z ${user_IP_1} ]]; then
 			user_IP_total="0"
 		else
@@ -922,12 +858,12 @@ centos_View_user_connection_info(){
 		echo -e "${user_list_all}"
 	else
 		now_mode="多端口" && user_total=`${jq_file} '.port_password' ${config_user_file} |sed '$d;1d' | wc -l`
-		IP_total=`netstat -anp |grep 'ESTABLISHED' |grep 'python' |grep 'tcp' | grep '::ffff:' |awk '{print $5}' |awk -F ":" '{print $4}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" |wc -l`
+		IP_total=`netstat -anp |grep 'ESTABLISHED' |grep '${PYTHON}' |grep 'tcp' | grep '::ffff:' |awk '{print $5}' |awk -F ":" '{print $4}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" |wc -l`
 		user_list_all=""
 		for((integer = 1; integer <= ${user_total}; integer++))
 		do
 			user_port=`${jq_file} '.port_password' ${config_user_file} |sed '$d;1d' |awk -F ":" '{print $1}' |sed -n "${integer}p" |sed -r 's/.*\"(.+)\".*/\1/'`
-			user_IP_1=`netstat -anp |grep 'ESTABLISHED' |grep 'python' |grep 'tcp' |grep "${user_port}"|grep '::ffff:' |awk '{print $5}' |awk -F ":" '{print $4}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" `
+			user_IP_1=`netstat -anp |grep 'ESTABLISHED' |grep '${PYTHON}' |grep 'tcp' |grep "${user_port}"|grep '::ffff:' |awk '{print $5}' |awk -F ":" '{print $4}' |sort -u |grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" `
 			if [[ -z ${user_IP_1} ]]; then
 				user_IP_total="0"
 			else
