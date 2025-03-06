@@ -776,4 +776,13 @@ Update_SSR(){
 }
 
 Uninstall_SSR(){
-	[[ ! -e ${config_user_file} ]] && [[ ! -e 
+    if [[ ! -e ${config_user_file} ]] && [[ ! -e ${ssr_folder} ]]; then
+        echo -e "${Error} ShadowsocksR 未安装！" && exit 1
+    fi
+    echo -e "${Info} 正在卸载 ShadowsocksR..."
+    # 假设卸载操作为删除相关文件和目录
+    rm -rf ${config_folder}
+    rm -rf ${ssr_folder}
+    rm -f /etc/init.d/ssr
+    echo -e "${Info} ShadowsocksR 已卸载！"
+}
