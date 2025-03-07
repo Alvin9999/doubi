@@ -96,19 +96,22 @@ Save_iptables(){
 		ip6tables-save > /etc/ip6tables.up.rules
 	fi
 }
-Set_iptables(){
-	if [[ ${release} == "centos" ]]; then
-		service iptables save
-		service ip6tables save
-		chkconfig --level 2345 iptables on
-		chkconfig --level 2345 ip6tables on
+Set_firewall(){
+	if systemctl is-active firewalld &>/dev/null; then
+		echo -e "${Info} 检测到 firewalld，正在添加规则..."
+		firewall-cmd --zone=public --add-port=${ssr_port}/tcp --permanent
+		firewall-cmd --reload
+	elif command -v nft &>/dev/null; then
+		nft add rule inet filter input tcp dport ${ssr_port} accept
+		nft add rule inet filter input udp dport ${ssr_port} accept
 	else
+		# 原iptables规则
+		iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport ${ssr_port} -j ACCEPT
+		iptables -I INPUT -m state --state NEW -m udp -p udp --dport ${ssr_port} -j ACCEPT
 		iptables-save > /etc/iptables.up.rules
-		ip6tables-save > /etc/ip6tables.up.rules
-		echo -e '#!/bin/bash\n/sbin/iptables-restore < /etc/iptables.up.rules\n/sbin/ip6tables-restore < /etc/ip6tables.up.rules' > /etc/network/if-pre-up.d/iptables
-		chmod +x /etc/network/if-pre-up.d/iptables
 	fi
 }
+
 # 读取 配置信息
 Get_IP(){
 	ip=$(wget -qO- -t1 -T2 ipinfo.io/ip)
