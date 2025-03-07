@@ -5,11 +5,11 @@ export PATH
 #=================================================
 #	System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 #	Description: Install the ShadowsocksR server
-#	Version: 3.0.2
+#	Version: 3.0.3
 #	Author: Toyo
 #=================================================
 
-sh_ver="3.0.2"
+sh_ver="3.0.3"
 filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
@@ -613,12 +613,16 @@ Debian_apt(){
 Download_SSR(){
 	cd "/usr/local/"
 	wget -N --no-check-certificate "https://github.com/shadowsocksrr/shadowsocksr/archive/refs/heads/akkariiin/dev.zip" -O "ssr.zip"
+	if [[ ! -e "ssr.zip" ]]; then
+		echo -e "${Error} ShadowsocksR服务端压缩包下载失败 !" && exit 1
+	fi
 	unzip "ssr.zip"
 	mv shadowsocksr-akkariiin-dev shadowsocksr
 	mkdir -p /etc/shadowsocksr
 	rm -f ssr.zip
 	echo -e "${Info} ShadowsocksR服务端下载完成！"
 }
+
 Service_SSR(){
 	if [[ ${release} = "centos" ]]; then
 		if ! wget --no-check-certificate https://raw.githubusercontent.com/ToyoDAdoubi/doubi/master/service/ssr_centos -O /etc/init.d/ssr; then
@@ -658,14 +662,27 @@ JQ_install(){
 Installation_dependency(){
 	if [[ ${release} == "centos" ]]; then
 		yum update -y
-		yum install -y vim unzip net-tools wget firewalld
+		yum install -y vim unzip net-tools wget
 	else
 		apt-get update -y
-		apt-get install -y vim unzip net-tools wget firewalld
+		apt-get install -y vim unzip net-tools wget
 	fi
 	Check_python
 	ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+	Install_firewalld
 }
+
+Install_firewalld(){
+	if ! systemctl is-active firewalld &>/dev/null; then
+		if [[ ${release} == "centos" ]]; then
+			yum install -y firewalld && systemctl enable --now firewalld
+		else
+			apt-get install -y firewalld
+			systemctl enable --now firewalld
+		fi
+	fi
+}
+
 Install_SSR(){
 	check_root
 	[[ -e ${config_user_file} ]] && echo -e "${Error} ShadowsocksR 配置文件已存在，请检查( 如安装失败或者存在旧版本，请先卸载 ) !" && exit 1
