@@ -35,22 +35,20 @@ check_root(){
 	[[ $EUID != 0 ]] && echo -e "${Error} 当前账号非ROOT(或没有ROOT权限)，无法继续操作，请使用${Green_background_prefix} sudo su ${Font_color_suffix}来获取临时ROOT权限（执行后会提示输入当前账号的密码）。" && exit 1
 }
 check_sys(){
-	if [[ -f /etc/redhat-release ]]; then
-		release="centos"
-	elif cat /etc/issue | grep -q -E -i "debian"; then
-		release="debian"
-	elif cat /etc/issue | grep -q -E -i "ubuntu"; then
-		release="ubuntu"
-	elif cat /etc/issue | grep -q -E -i "centos|red hat|redhat"; then
-		release="centos"
-	elif cat /proc/version | grep -q -E -i "debian"; then
-		release="debian"
-	elif cat /proc/version | grep -q -E -i "ubuntu"; then
-		release="ubuntu"
-	elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
-		release="centos"
-    fi
-	bit=`uname -m`
+	if command -v lsb_release >/dev/null 2>&1; then
+		release=$(lsb_release -is | tr '[:upper:]' '[:lower:]')
+	else
+		if [[ -f /etc/redhat-release ]]; then
+			release="centos"
+		elif grep -qi "debian" /etc/os-release; then
+			release="debian"
+		elif grep -qi "ubuntu" /etc/os-release; then
+			release="ubuntu"
+		else
+			echo -e "${Error} 不支持当前系统！" && exit 1
+		fi
+	fi
+	bit=$(uname -m)
 }
 check_pid(){
 	PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
@@ -578,16 +576,19 @@ Write_configuration_many(){
 EOF
 }
 Check_python(){
-	python_ver=`python -h`
-	if [[ -z ${python_ver} ]]; then
-		echo -e "${Info} 没有安装Python，开始安装..."
+	if ! command -v python3 &>/dev/null; then
+		echo -e "${Info} 未检测到 Python3，开始安装..."
 		if [[ ${release} == "centos" ]]; then
-			yum install -y python
+			yum install -y python3
 		else
-			apt-get install -y python
+			apt-get update && apt-get install -y python3 python3-pip
 		fi
+		ln -sf $(which python3) /usr/bin/python
+	else
+		echo -e "${Info} Python3已安装！"
 	fi
 }
+
 Centos_yum(){
 	yum update
 	cat /etc/redhat-release |grep 7\..*|grep -i centos>/dev/null
@@ -662,15 +663,14 @@ JQ_install(){
 # 安装 依赖
 Installation_dependency(){
 	if [[ ${release} == "centos" ]]; then
-		Centos_yum
+		yum update -y
+		yum install -y vim unzip net-tools wget firewalld
 	else
-		Debian_apt
+		apt-get update -y
+		apt-get install -y vim unzip net-tools wget firewalld
 	fi
-	[[ ! -e "/usr/bin/unzip" ]] && echo -e "${Error} 依赖 unzip(解压压缩包) 安装失败，多半是软件包源的问题，请检查 !" && exit 1
 	Check_python
-	#echo "nameserver 8.8.8.8" > /etc/resolv.conf
-	#echo "nameserver 8.8.4.4" >> /etc/resolv.conf
-	\cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+	ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 }
 Install_SSR(){
 	check_root
