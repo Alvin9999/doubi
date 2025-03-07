@@ -5,11 +5,11 @@ export PATH
 #=================================================
 #	System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 #	Description: Install the ShadowsocksR server
-#	Version: 3.0.3
+#	Version: 3.0.4
 #	Author: Toyo
 #=================================================
 
-sh_ver="3.0.3"
+sh_ver="3.0.4"
 filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
@@ -94,21 +94,6 @@ Save_iptables(){
 	else
 		iptables-save > /etc/iptables.up.rules
 		ip6tables-save > /etc/ip6tables.up.rules
-	fi
-}
-Set_firewall(){
-	if systemctl is-active firewalld &>/dev/null; then
-		echo -e "${Info} 检测到 firewalld，正在添加规则..."
-		firewall-cmd --zone=public --add-port=${ssr_port}/tcp --permanent
-		firewall-cmd --reload
-	elif command -v nft &>/dev/null; then
-		nft add rule inet filter input tcp dport ${ssr_port} accept
-		nft add rule inet filter input udp dport ${ssr_port} accept
-	else
-		# 原iptables规则
-		iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport ${ssr_port} -j ACCEPT
-		iptables -I INPUT -m state --state NEW -m udp -p udp --dport ${ssr_port} -j ACCEPT
-		iptables-save > /etc/iptables.up.rules
 	fi
 }
 
