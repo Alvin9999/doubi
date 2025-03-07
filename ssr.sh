@@ -5,12 +5,12 @@ export PATH
 #=================================================
 #	System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 #	Description: Install the ShadowsocksR server
-#	Version: 3.0.0
+#	Version: 3.0.1
 #	Author: Toyo
 #	Blog: https://doub.io/ss-jc42/
 #=================================================
 
-sh_ver="3.0.0"
+sh_ver="3.0.1"
 filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
@@ -610,20 +610,12 @@ Debian_apt(){
 # 下载 ShadowsocksR
 Download_SSR(){
 	cd "/usr/local/"
-	wget -N --no-check-certificate "https://github.com/ToyoDAdoubiBackup/shadowsocksr/archive/manyuser.zip"
-	#git config --global http.sslVerify false
-	#env GIT_SSL_NO_VERIFY=true git clone -b manyuser https://github.com/ToyoDAdoubiBackup/shadowsocksr.git
-	#[[ ! -e ${ssr_folder} ]] && echo -e "${Error} ShadowsocksR服务端 下载失败 !" && exit 1
-	[[ ! -e "manyuser.zip" ]] && echo -e "${Error} ShadowsocksR服务端 压缩包 下载失败 !" && rm -rf manyuser.zip && exit 1
-	unzip "manyuser.zip"
-	[[ ! -e "/usr/local/shadowsocksr-manyuser/" ]] && echo -e "${Error} ShadowsocksR服务端 解压失败 !" && rm -rf manyuser.zip && exit 1
-	mv "/usr/local/shadowsocksr-manyuser/" "/usr/local/shadowsocksr/"
-	[[ ! -e "/usr/local/shadowsocksr/" ]] && echo -e "${Error} ShadowsocksR服务端 重命名失败 !" && rm -rf manyuser.zip && rm -rf "/usr/local/shadowsocksr-manyuser/" && exit 1
-	rm -rf manyuser.zip
-	[[ -e ${config_folder} ]] && rm -rf ${config_folder}
-	mkdir ${config_folder}
-	[[ ! -e ${config_folder} ]] && echo -e "${Error} ShadowsocksR配置文件的文件夹 建立失败 !" && exit 1
-	echo -e "${Info} ShadowsocksR服务端 下载完成 !"
+	wget -N --no-check-certificate "https://github.com/shadowsocksrr/shadowsocksr/archive/refs/heads/akkariiin/dev.zip" -O "ssr.zip"
+	unzip "ssr.zip"
+	mv shadowsocksr-akkariiin-dev shadowsocksr
+	mkdir -p /etc/shadowsocksr
+	rm -f ssr.zip
+	echo -e "${Info} ShadowsocksR服务端下载完成！"
 }
 Service_SSR(){
 	if [[ ${release} = "centos" ]]; then
