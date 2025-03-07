@@ -5,11 +5,11 @@ export PATH
 #=================================================
 #	System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 #	Description: Install the ShadowsocksR server
-#	Version: 3.0.4
+#	Version: 3.0.5
 #	Author: Toyo
 #=================================================
 
-sh_ver="3.0.4"
+sh_ver="3.0.5"
 filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
@@ -654,19 +654,8 @@ Installation_dependency(){
 	fi
 	Check_python
 	ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-	Install_firewalld
 }
 
-Install_firewalld(){
-	if ! systemctl is-active firewalld &>/dev/null; then
-		if [[ ${release} == "centos" ]]; then
-			yum install -y firewalld && systemctl enable --now firewalld
-		else
-			apt-get install -y firewalld
-			systemctl enable --now firewalld
-		fi
-	fi
-}
 
 Install_SSR(){
 	check_root
