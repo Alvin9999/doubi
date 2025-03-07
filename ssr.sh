@@ -5,11 +5,11 @@ export PATH
 #=================================================
 #	System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 #	Description: Install the ShadowsocksR server
-#	Version: 3.0.6
+#	Version: 3.0.7
 #	Author: Toyo
 #=================================================
 
-sh_ver="3.0.6"
+sh_ver="3.0.7"
 filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
@@ -903,6 +903,17 @@ get_IP_address(){
 		done
 	fi
 }
+
+Set_iptables(){
+    if [[ ${release} == "centos" ]]; then
+        service iptables save
+        service iptables restart
+    else
+        iptables-save > /etc/iptables.up.rules
+        iptables-restore -c < /etc/iptables.up.rules
+    fi
+}
+
 # 修改 用户配置
 Modify_Config(){
 	SSR_installation_status
