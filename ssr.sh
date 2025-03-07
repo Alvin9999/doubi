@@ -5,11 +5,11 @@ export PATH
 #=================================================
 #	System Required: CentOS 6+/Debian 6+/Ubuntu 14.04+
 #	Description: Install the ShadowsocksR server
-#	Version: 3.0.5
+#	Version: 3.0.6
 #	Author: Toyo
 #=================================================
 
-sh_ver="3.0.5"
+sh_ver="3.0.6"
 filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 ssr_folder="/usr/local/shadowsocksr"
@@ -627,22 +627,21 @@ Service_SSR(){
 }
 # 安装 JQ解析器
 JQ_install(){
-	if [[ ! -e ${jq_file} ]]; then
-		cd "${ssr_folder}"
-		if [[ ${bit} = "x86_64" ]]; then
-			mv "jq-linux64" "jq"
-			#wget --no-check-certificate "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64" -O ${jq_file}
-		else
-			mv "jq-linux32" "jq"
-			#wget --no-check-certificate "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux32" -O ${jq_file}
-		fi
-		[[ ! -e ${jq_file} ]] && echo -e "${Error} JQ解析器 重命名失败，请检查 !" && exit 1
-		chmod +x ${jq_file}
-		echo -e "${Info} JQ解析器 安装完成，继续..." 
-	else
-		echo -e "${Info} JQ解析器 已安装，继续..."
-	fi
+    if [[ ! -e ${jq_file} ]]; then
+        cd "${ssr_folder}"
+        if [[ ${bit} = "x86_64" ]]; then
+            wget --no-check-certificate "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64" -O jq
+        else
+            wget --no-check-certificate "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-i386" -O jq
+        fi
+        [[ ! -e jq ]] && echo -e "${Error} JQ解析器 下载失败，请检查 !" && exit 1
+        chmod +x jq
+        echo -e "${Info} JQ解析器 安装完成，继续..."
+    else
+        echo -e "${Info} JQ解析器 已安装，继续..."
+    fi
 }
+
 # 安装 依赖
 Installation_dependency(){
 	if [[ ${release} == "centos" ]]; then
